@@ -10,12 +10,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ── Static assets (CSS, JS, images) ───────────────────────────────
+// ✅ Use Render port
+const PORT = process.env.PORT || 5000;
+
+// ── Static assets ───────────────────────────────
 app.use('/css',    express.static(path.join(FE, 'css')));
 app.use('/js',     express.static(path.join(FE, 'js')));
 app.use('/images', express.static(path.join(FE, 'images')));
 
-// ── HTML page routes (all explicit, no guessing) ──────────────────
+// ── HTML routes ─────────────────────────────────
 const page = (file) => (_, res) => res.sendFile(path.join(FE, file));
 
 app.get('/',                   page('landing.html'));
@@ -28,7 +31,7 @@ app.get('/patient/dashboard',  page('pages/patient/dashboard.html'));
 app.get('/doctor/dashboard',   page('pages/doctor/dashboard.html'));
 app.get('/admin/dashboard',    page('pages/admin/dashboard.html'));
 
-// ── API routes ────────────────────────────────────────────────────
+// ── API routes ──────────────────────────────────
 app.use('/api/auth',          require('./routes/auth'));
 app.use('/api/appointments',  require('./routes/appointments'));
 app.use('/api/prescriptions', require('./routes/prescriptions'));
@@ -40,14 +43,19 @@ app.use('/api/reports',       require('./routes/reports'));
 app.use('/api/users',         require('./routes/users'));
 app.use('/api/medicines',     require('./routes/medicines'));
 app.use('/api/diseases',      require('./routes/diseases'));
-app.get('/api/health',        (_, res) => res.json({ ok: true }));
 
-// ── DB + Start ────────────────────────────────────────────────────
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hms_db')
+app.get('/api/health', (_, res) => res.json({ ok: true }));
+
+// ── DB + Start ──────────────────────────────────
+mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-    console.log('✅  MongoDB connected');
-    app.listen(5000, () => {
-      console.log('\n🚀  MediCare HMS  →  http://localhost:5000\n');
+    console.log('✅ MongoDB connected');
+
+    app.listen(PORT, () => {
+      console.log(`🚀 MediCare HMS running on port ${PORT}`);
     });
   })
-  .catch(e => { console.error('❌  DB error:', e.message); process.exit(1); });
+  .catch(e => {
+    console.error('❌ DB error:', e.message);
+    process.exit(1);
+  });
