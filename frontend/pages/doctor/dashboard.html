@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Dashboard — MediCare HMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .page-section { display:none; }
+    .page-section.active { display:block; }
+    .status-badge { padding:4px 10px; border-radius:999px; font-size:.78rem; font-weight:600; display:inline-block; }
+    .badge-pending  { background:#fff3cd; color:#856404; }
+    .badge-confirmed{ background:#d1ecf1; color:#0c5460; }
+    .badge-completed{ background:#d4edda; color:#155724; }
+    .badge-cancelled{ background:#f8d7da; color:#721c24; }
+    .apt-card { border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:12px; background:#fff; }
+    .apt-card:hover { box-shadow:var(--shadow2); }
+    .apt-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; align-items:center; justify-content:center; padding:20px; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#fff; width:min(860px,100%); max-height:92vh; overflow:auto; border-radius:16px; padding:28px; }
+    .med-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:8px; margin-bottom:8px; align-items:center; }
+    @media(max-width:700px){ .med-row { grid-template-columns:1fr; } }
+    .med-row input { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:'DM Sans',sans-serif; width:100%; }
+    .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+    .stat-mini { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
+    .stat-mini h3 { font-size:1.8rem; color:var(--primary); margin-bottom:2px; }
+    .stat-mini p { font-size:.78rem; color:var(--text2); }
+    .flex-between { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+    .mini-muted { color:var(--text2); font-size:.83rem; }
+    .input-field { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:.9rem; font-family:'DM Sans',sans-serif; }
+    .presc-card { border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:12px; background:#fff; }
+    .pat-card { border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:12px; background:#fff; }
+    .table-wrap { overflow-x:auto; }
+    table.data-table { width:100%; border-collapse:collapse; }
+    table.data-table th { background:#f5f5f5; padding:10px 12px; text-align:left; font-size:.82rem; color:var(--text2); border-bottom:2px solid var(--border); }
+    table.data-table td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:.88rem; }
+    .btn-xs { padding:6px 14px; font-size:.8rem; border-radius:6px; width:auto; }
+    .search-bar { width:100%; margin-bottom:12px; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; }
+    .profile-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .info-row { display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+    .info-row label { width:140px; font-weight:600; font-size:.85rem; color:var(--text2); flex-shrink:0; }
+    .tag { display:inline-block; background:#eef4ff; color:#2457d6; padding:3px 10px; border-radius:20px; font-size:.78rem; margin:2px; }
+  </style>
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><h2>🏥 MediCare</h2><p>Doctor Portal</p></div>
+    <div class="sidebar-user">
+      <div class="avatar" id="user-avatar">D</div>
+      <div class="info">
+        <div class="name" id="user-name">Doctor</div>
+        <div class="role" id="user-spec">Doctor</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-page="appointments" onclick="navigate('appointments')"><span class="nav-icon">📅</span> Appointments</div>
+      <div class="nav-item" data-page="patients" onclick="navigate('patients')"><span class="nav-icon">🧑‍⚕️</span> My Patients</div>
+      <div class="nav-section">Clinical</div>
+      <div class="nav-item" data-page="prescriptions" onclick="navigate('prescriptions')"><span class="nav-icon">💊</span> Prescriptions</div>
+      <div class="nav-item" data-page="reports" onclick="navigate('reports')"><span class="nav-icon">🧪</span> Reports</div>
+      <div class="nav-section">Account</div>
+      <div class="nav-item" data-page="profile" onclick="navigate('profile')"><span class="nav-icon">👤</span> My Profile</div>
+    </nav>
+    <div class="sidebar-footer"><div class="logout-btn" onclick="Auth.logout()">🚪 <span>Logout</span></div></div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h1 id="page-title">Dashboard</h1>
+      <div class="topbar-right">
+        <div style="font-size:.88rem;color:var(--text2);">Welcome, <strong id="topbar-name"></strong></div>
+      </div>
+    </div>
+    <div class="page-content">
+      <div id="sec-dashboard" class="page-section active"></div>
+      <div id="sec-appointments" class="page-section"></div>
+      <div id="sec-patients" class="page-section"></div>
+      <div id="sec-prescriptions" class="page-section"></div>
+      <div id="sec-reports" class="page-section"></div>
+      <div id="sec-profile" class="page-section"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Prescription Modal -->
+<div class="modal-overlay" id="rx-modal">
+  <div class="modal-box">
+    <div class="flex-between" style="margin-bottom:20px;">
+      <h2>✍️ Write Prescription</h2>
+      <button class="btn btn-secondary btn-xs" onclick="closeRxModal()">✕ Close</button>
+    </div>
+
+    <div id="rx-patient-info" style="background:#f0f4f8;border-radius:8px;padding:14px;margin-bottom:16px;"></div>
+
+    <div class="form-group">
+      <label>Diagnosis *</label>
+      <input class="input-field" type="text" id="rx-diagnosis" placeholder="Enter diagnosis / condition">
+    </div>
+    <div class="form-group">
+      <label>Clinical Notes</label>
+      <textarea class="input-field" id="rx-notes" rows="3" placeholder="Any advice or notes for patient"></textarea>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px;">
+      <h3>Medicines</h3>
+      <button class="btn btn-secondary btn-xs" onclick="addMedRow()">+ Add Medicine</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <div style="min-width:600px;">
+        <div class="med-row" style="font-size:.78rem;color:var(--text2);font-weight:600;padding-bottom:4px;">
+          <span>Medicine Name *</span><span>Dosage</span><span>Frequency</span><span>Duration</span><span></span>
+        </div>
+        <div id="med-list"></div>
+      </div>
+    </div>
+
+    <div id="rx-error" style="color:red;font-size:.85rem;margin-top:8px;"></div>
+
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-xs" onclick="submitPrescription()">Send Prescription</button>
+      <button class="btn btn-secondary btn-xs" onclick="closeRxModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+let docUser, allApts = [], selectedApt = null, allPrescriptions = [], allPatients = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  docUser = await Auth.requireAuth('doctor');
+  if (!docUser) return;
+  document.getElementById('user-name').textContent = docUser.name || 'Doctor';
+  document.getElementById('user-spec').textContent = docUser.speciality || 'Doctor';
+  document.getElementById('user-avatar').textContent = (docUser.name || 'D').charAt(0).toUpperCase();
+  document.getElementById('topbar-name').textContent = (docUser.name || '').split(' ')[0];
+  navigate('dashboard');
+});
+
+function navigate(page) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById('sec-' + page);
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  const titles = { dashboard:'Dashboard', appointments:'Appointments', patients:'My Patients', prescriptions:'Prescriptions', reports:'Reports', profile:'My Profile' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  const loaders = { dashboard:loadDashboard, appointments:loadAppointments, patients:loadPatients, prescriptions:loadPrescriptions, reports:loadReports, profile:loadProfile };
+  if (loaders[page]) loaders[page]();
+}
+
+function statusBadge(s) {
+  const map = { pending:'badge-pending', confirmed:'badge-confirmed', completed:'badge-completed', cancelled:'badge-cancelled' };
+  return `<span class="status-badge ${map[s]||'badge-pending'}">${s||'pending'}</span>`;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+async function loadDashboard() {
+  const sec = document.getElementById('sec-dashboard');
+  sec.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await API.appointments.getAll();
+    allApts = res.data || [];
+    const today = new Date().toISOString().split('T')[0];
+    const todayApts = allApts.filter(a => a.date === today);
+    const pending = allApts.filter(a => a.status === 'pending').length;
+    const confirmed = allApts.filter(a => a.status === 'confirmed').length;
+    const completed = allApts.filter(a => a.status === 'completed').length;
+
+    sec.innerHTML = `
+      <div class="stat-row">
+        <div class="stat-mini"><h3>${allApts.length}</h3><p>Total Appointments</p></div>
+        <div class="stat-mini"><h3>${todayApts.length}</h3><p>Today</p></div>
+        <div class="stat-mini"><h3>${pending}</h3><p>Pending</p></div>
+        <div class="stat-mini"><h3>${completed}</h3><p>Completed</p></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div class="card-header"><h3>Today's Appointments</h3></div>
+          <div class="card-body">
+            ${todayApts.length ? todayApts.map(a => aptCardHTML(a, true)).join('') : '<p class="mini-muted">No appointments today.</p>'}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Upcoming (Pending)</h3></div>
+          <div class="card-body">
+            ${allApts.filter(a=>a.status==='pending').slice(0,5).map(a => `
+              <div class="apt-card" style="padding:12px;">
+                <strong>${a.patient?.name||'N/A'}</strong>
+                <div class="mini-muted">${a.date} · ${a.time}</div>
+                <div class="mini-muted">${a.condition||''}</div>
+                ${statusBadge(a.status)}
+              </div>
+            `).join('') || '<p class="mini-muted">No pending appointments.</p>'}
+          </div>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    sec.innerHTML = `<div style="color:red;padding:12px;">${e.message}</div>`;
+  }
+}
+
+// ── APPOINTMENTS ──────────────────────────────────────────────────
+async function loadAppointments() {
+  const sec = document.getElementById('sec-appointments');
+  sec.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await API.appointments.getAll();
+    allApts = res.data || [];
+    renderApts(allApts);
+  } catch(e) { sec.innerHTML = `<div style="color:red;">${e.message}</div>`; }
+}
+
+function renderApts(data) {
+  const sec = document.getElementById('sec-appointments');
+  sec.innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>My Appointments</h3></div>
+      <div class="card-body">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <input class="search-bar" id="apt-q" placeholder="Search patient or condition..." oninput="filterDocApts()" style="margin:0;flex:1;min-width:200px;">
+          <select class="input-field" id="apt-st" onchange="filterDocApts()" style="width:160px;">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div id="apt-list">
+          ${data.map(a => aptCardHTML(a, false)).join('') || '<p class="mini-muted">No appointments found.</p>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function aptCardHTML(a, compact) {
+  const s = a.status || 'pending';
+  return `
+    <div class="apt-card">
+      <div class="flex-between">
+        <div>
+          <strong>${a.patient?.name || 'N/A'}</strong>
+          ${a.patient?.phone ? `<span class="mini-muted"> · ${a.patient.phone}</span>` : ''}
+          <div class="mini-muted" style="margin-top:2px;">${a.speciality||''} · ${a.date||''} at ${a.time||''}</div>
+          <div class="mini-muted">${a.condition||''}</div>
+          ${a.notes ? `<div class="mini-muted">📝 ${a.notes}</div>` : ''}
+        </div>
+        <div>${statusBadge(s)}</div>
+      </div>
+      <div class="apt-actions">
+        ${s === 'pending' ? `
+          <button class="btn btn-success btn-xs" onclick="changeStatus('${a._id}','confirmed')">✓ Accept</button>
+          <button class="btn btn-danger btn-xs" onclick="changeStatus('${a._id}','cancelled')">✕ Decline</button>
+        ` : ''}
+        ${s === 'confirmed' ? `
+          <button class="btn btn-primary btn-xs" onclick="changeStatus('${a._id}','completed')">✓ Complete</button>
+          <button class="btn btn-accent btn-xs" onclick="openRx('${a._id}')">💊 Write Prescription</button>
+          <button class="btn btn-danger btn-xs" onclick="changeStatus('${a._id}','cancelled')">✕ Cancel</button>
+        ` : ''}
+        ${s === 'completed' ? `<button class="btn btn-secondary btn-xs" onclick="openRx('${a._id}')">💊 Add/View Prescription</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function filterDocApts() {
+  const q = (document.getElementById('apt-q')?.value || '').toLowerCase();
+  const st = document.getElementById('apt-st')?.value || '';
+  let data = allApts;
+  if (st) data = data.filter(a => a.status === st);
+  if (q) data = data.filter(a => (a.patient?.name||'').toLowerCase().includes(q) || (a.condition||'').toLowerCase().includes(q));
+  const el = document.getElementById('apt-list');
+  if (el) el.innerHTML = data.map(a => aptCardHTML(a, false)).join('') || '<p class="mini-muted">No appointments found.</p>';
+}
+
+async function changeStatus(id, status) {
+  if (!confirm(`Mark this appointment as ${status}?`)) return;
+  try {
+    await API.appointments.updateStatus(id, { status });
+    await loadAppointments();
+    await loadDashboard();
+  } catch(e) { alert(e.message); }
+}
+
+// ── PATIENTS ──────────────────────────────────────────────────────
+async function loadPatients() {
+  const sec = document.getElementById('sec-patients');
+  sec.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await API.users.patients();
+    allPatients = res.data || [];
+    renderPatientsList(allPatients);
+  } catch(e) { sec.innerHTML = `<div style="color:red;">${e.message}</div>`; }
+}
+
+function renderPatientsList(data) {
+  const sec = document.getElementById('sec-patients');
+  sec.innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Patients (${data.length})</h3></div>
+      <div class="card-body">
+        <input class="search-bar" id="pat-q" placeholder="Search patients..." oninput="filterDocPatients()">
+        <div id="pat-list">
+          ${data.map(p => `
+            <div class="pat-card">
+              <div class="flex-between">
+                <div>
+                  <strong>${p.name}</strong>
+                  ${p.age ? `<span class="mini-muted"> · Age ${p.age}</span>` : ''}
+                  ${p.gender ? `<span class="mini-muted"> · ${p.gender}</span>` : ''}
+                  <div class="mini-muted">${p.email||''} ${p.phone ? '· ' + p.phone : ''}</div>
+                  ${p.bloodGroup ? `<div class="mini-muted">Blood: <strong>${p.bloodGroup}</strong></div>` : ''}
+                  ${p.address ? `<div class="mini-muted">${p.address}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:6px;flex-direction:column;">
+                  <button class="btn btn-primary btn-xs" onclick="viewPatientPrescriptions('${p._id}', '${(p.name||'').replace(/'/g,'')}')">💊 Prescriptions</button>
+                </div>
+              </div>
+            </div>
+          `).join('') || '<p class="mini-muted">No patients found.</p>'}
+        </div>
+      </div>
+    </div>
+  `;
+  window._allDocPatients = data;
+}
+
+function filterDocPatients() {
+  const q = (document.getElementById('pat-q')?.value || '').toLowerCase();
+  const filtered = (window._allDocPatients || []).filter(p =>
+    (p.name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q)
+  );
+  const el = document.getElementById('pat-list');
+  if (el) el.innerHTML = filtered.map(p => `
+    <div class="pat-card">
+      <div class="flex-between">
+        <div>
+          <strong>${p.name}</strong>
+          ${p.age ? `<span class="mini-muted"> · Age ${p.age}</span>` : ''}
+          <div class="mini-muted">${p.email||''} ${p.phone ? '· ' + p.phone : ''}</div>
+        </div>
+        <button class="btn btn-primary btn-xs" onclick="viewPatientPrescriptions('${p._id}', '${(p.name||'').replace(/'/g,'')}')">💊 Prescriptions</button>
+      </div>
+    </div>
+  `).join('') || '<p class="mini-muted">No patients found.</p>';
+}
+
+async function viewPatientPrescriptions(patientId, patientName) {
+  navigate('prescriptions');
+  const sec = document.getElementById('sec-prescriptions');
+  sec.innerHTML = `<p class="mini-muted">Loading prescriptions for ${patientName}...</p>`;
+  try {
+    const res = await API.prescriptions.getAll();
+    const data = (res.data || []).filter(p => String(p.patient?._id || p.patient) === String(patientId));
+    sec.innerHTML = `
+      <div class="card">
+        <div class="card-header flex-between">
+          <h3>Prescriptions — ${patientName}</h3>
+          <button class="btn btn-secondary btn-xs" onclick="loadPrescriptions()">← All Prescriptions</button>
+        </div>
+        <div class="card-body">
+          ${renderPrescCards(data)}
+        </div>
+      </div>
+    `;
+  } catch(e) { sec.innerHTML = `<div style="color:red;">${e.message}</div>`; }
+}
+
+// ── PRESCRIPTIONS ─────────────────────────────────────────────────
+async function loadPrescriptions() {
+  const sec = document.getElementById('sec-prescriptions');
+  sec.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await API.prescriptions.getAll();
+    allPrescriptions = res.data || [];
+    sec.innerHTML = `
+      <div class="card">
+        <div class="card-header"><h3>All Prescriptions (${allPrescriptions.length})</h3></div>
+        <div class="card-body">
+          <input class="search-bar" id="presc-q" placeholder="Search patient or diagnosis..." oninput="filterDocPrescs()">
+          <div id="presc-list">${renderPrescCards(allPrescriptions)}</div>
+        </div>
+      </div>
+    `;
+  } catch(e) { sec.innerHTML = `<div style="color:red;">${e.message}</div>`; }
+}
+
+function renderPrescCards(data) {
+  if (!data.length) return '<p class="mini-muted" style="text-align:center;padding:20px;">No prescriptions found.</p>';
+  return data.map(p => `
+    <div class="presc-card">
+      <div class="flex-between">
+        <div>
+          <strong>${p.patient?.name || 'N/A'}</strong>
+          <span class="mini-muted"> · ${p.appointment?.date||''} ${p.appointment?.time||''}</span>
+          <div class="mini-muted">Diagnosis: ${p.diagnosis || '-'}</div>
+          <div style="margin-top:6px;">
+            ${(p.medicines||[]).map(m => `
+              <div class="mini-muted">💊 ${m.name} — ${m.dosage||''} ${m.frequency?'· '+m.frequency:''} ${m.duration?'· '+m.duration:''}</div>
+            `).join('')}
+          </div>
+          ${p.notes ? `<div class="mini-muted" style="margin-top:4px;">📝 ${p.notes}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterDocPrescs() {
+  const q = (document.getElementById('presc-q')?.value || '').toLowerCase();
+  const filtered = allPrescriptions.filter(p =>
+    (p.patient?.name||'').toLowerCase().includes(q) || (p.diagnosis||'').toLowerCase().includes(q)
+  );
+  const el = document.getElementById('presc-list');
+  if (el) el.innerHTML = renderPrescCards(filtered);
+}
+
+// ── REPORTS ───────────────────────────────────────────────────────
+async function loadReports() {
+  const sec = document.getElementById('sec-reports');
+  sec.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await API.reports.getAll();
+    const data = (res.data || []).filter(r => String(r.doctor?._id || r.doctor) === String(docUser._id || docUser.id));
+    sec.innerHTML = `
+      <div class="card">
+        <div class="card-header"><h3>My Reports (${data.length})</h3></div>
+        <div class="card-body">
+          ${data.length ? `
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Type</th><th>Patient</th><th>Result</th><th>Date</th></tr></thead>
+                <tbody>
+                  ${data.map(r => `<tr>
+                    <td><strong>${r.type||''}</strong></td>
+                    <td>${r.patient?.name||'N/A'}</td>
+                    <td>${r.result||'-'}</td>
+                    <td>${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-'}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : '<p class="mini-muted" style="text-align:center;padding:20px;">No reports found.</p>'}
+        </div>
+      </div>
+    `;
+  } catch(e) { sec.innerHTML = `<div style="color:red;">${e.message}</div>`; }
+}
+
+// ── PROFILE ───────────────────────────────────────────────────────
+async function loadProfile() {
+  const sec = document.getElementById('sec-profile');
+  sec.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await API.auth.me();
+    const u = res.user || {};
+    sec.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div class="card-header flex-between">
+            <h3>My Profile</h3>
+            <button class="btn btn-primary btn-xs" onclick="toggleEditProfile()">✏️ Edit</button>
+          </div>
+          <div class="card-body" id="profile-view">
+            <div class="info-row"><label>Name</label><span>${u.name||'-'}</span></div>
+            <div class="info-row"><label>Email</label><span>${u.email||'-'}</span></div>
+            <div class="info-row"><label>Phone</label><span>${u.phone||'-'}</span></div>
+            <div class="info-row"><label>Speciality</label><span>${u.speciality||'-'}</span></div>
+            <div class="info-row"><label>Experience</label><span>${u.experience ? u.experience+' years' : '-'}</span></div>
+            <div class="info-row"><label>Hospital</label><span>${u.hospital||'-'}</span></div>
+            <div class="info-row"><label>Gender</label><span>${u.gender||'-'}</span></div>
+            <div class="info-row"><label>Available</label><span>${u.available ? '✅ Yes' : '❌ No'}</span></div>
+            <div class="info-row"><label>Time Slots</label><span>${(u.slots||[]).map(s=>`<span class="tag">${s}</span>`).join('') || '-'}</span></div>
+          </div>
+          <div class="card-body" id="profile-edit" style="display:none;">
+            <div class="form-group"><label>Name</label><input class="input-field" id="edit-name" value="${u.name||''}"></div>
+            <div class="form-group"><label>Phone</label><input class="input-field" id="edit-phone" value="${u.phone||''}"></div>
+            <div class="form-group"><label>Hospital</label><input class="input-field" id="edit-hospital" value="${u.hospital||''}"></div>
+            <div class="form-group"><label>Gender</label>
+              <select class="input-field" id="edit-gender">
+                <option ${u.gender==='Male'?'selected':''}>Male</option>
+                <option ${u.gender==='Female'?'selected':''}>Female</option>
+                <option ${u.gender==='Other'?'selected':''}>Other</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Available for Appointments</label>
+              <select class="input-field" id="edit-available">
+                <option value="true" ${u.available?'selected':''}>Yes</option>
+                <option value="false" ${!u.available?'selected':''}>No</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Time Slots (comma separated)</label>
+              <input class="input-field" id="edit-slots" value="${(u.slots||[]).join(', ')}">
+            </div>
+            <div class="action-row" style="margin-top:12px;">
+              <button class="btn btn-primary btn-xs" onclick="saveProfile()">Save Changes</button>
+              <button class="btn btn-secondary btn-xs" onclick="toggleEditProfile()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Professional Info</h3></div>
+          <div class="card-body">
+            <div class="info-row"><label>Speciality</label><span>${u.speciality||'-'}</span></div>
+            <div class="info-row"><label>Experience</label><span>${u.experience ? u.experience + ' years' : '-'}</span></div>
+            <div class="info-row"><label>License No</label><span>${u.licenseNo||'-'}</span></div>
+            <div class="info-row"><label>Rating</label><span>${u.rating ? '⭐ '+u.rating : '-'}</span></div>
+            <div class="info-row"><label>Available</label><span>${u.available ? '✅ Available' : '❌ Unavailable'}</span></div>
+            <div style="margin-top:16px;">
+              <label style="font-weight:600;font-size:.85rem;color:var(--text2);display:block;margin-bottom:8px;">Appointment Slots</label>
+              <div>${(u.slots||[]).map(s=>`<span class="tag">${s}</span>`).join('') || '<span class="mini-muted">No slots configured</span>'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch(e) { sec.innerHTML = `<div style="color:red;">${e.message}</div>`; }
+}
+
+function toggleEditProfile() {
+  const view = document.getElementById('profile-view');
+  const edit = document.getElementById('profile-edit');
+  if (view.style.display === 'none') { view.style.display = 'block'; edit.style.display = 'none'; }
+  else { view.style.display = 'none'; edit.style.display = 'block'; }
+}
+
+async function saveProfile() {
+  const slotsRaw = document.getElementById('edit-slots')?.value || '';
+  const slots = slotsRaw ? slotsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  try {
+    await API.auth.updateMe({
+      name: document.getElementById('edit-name').value.trim(),
+      phone: document.getElementById('edit-phone').value.trim(),
+      hospital: document.getElementById('edit-hospital').value.trim(),
+      gender: document.getElementById('edit-gender').value,
+      available: document.getElementById('edit-available').value === 'true',
+      slots
+    });
+    alert('✅ Profile updated!');
+    loadProfile();
+  } catch(e) { alert(e.message); }
+}
+
+// ── PRESCRIPTION MODAL ────────────────────────────────────────────
+function openRx(apptId) {
+  const apt = allApts.find(a => a._id === apptId);
+  if (!apt) return;
+  selectedApt = apt;
+
+  document.getElementById('rx-patient-info').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <div><div class="mini-muted">Patient</div><strong>${apt.patient?.name||'N/A'}</strong></div>
+      <div><div class="mini-muted">Appointment</div><strong>${apt.date||''} at ${apt.time||''}</strong></div>
+      <div><div class="mini-muted">Condition</div><strong>${apt.condition||'General'}</strong></div>
+    </div>
+  `;
+  document.getElementById('rx-diagnosis').value = apt.condition || '';
+  document.getElementById('rx-notes').value = '';
+  document.getElementById('rx-error').textContent = '';
+  document.getElementById('med-list').innerHTML = '';
+  addMedRow();
+  document.getElementById('rx-modal').classList.add('open');
+}
+
+function closeRxModal() {
+  document.getElementById('rx-modal').classList.remove('open');
+  selectedApt = null;
+}
+
+function addMedRow() {
+  const div = document.createElement('div');
+  div.className = 'med-row';
+  div.innerHTML = `
+    <input type="text" class="med-name" placeholder="Medicine name *">
+    <input type="text" class="med-dosage" placeholder="e.g. 500mg">
+    <input type="text" class="med-freq" placeholder="e.g. Twice daily">
+    <input type="text" class="med-dur" placeholder="e.g. 7 days">
+    <button type="button" class="btn btn-danger btn-xs" onclick="this.parentElement.remove()" style="padding:6px 10px;">✕</button>
+  `;
+  document.getElementById('med-list').appendChild(div);
+}
+
+async function submitPrescription() {
+  if (!selectedApt) return;
+  const errEl = document.getElementById('rx-error');
+  errEl.textContent = '';
+
+  const diagnosis = document.getElementById('rx-diagnosis').value.trim();
+  if (!diagnosis) { errEl.textContent = 'Diagnosis is required.'; return; }
+
+  const rows = document.querySelectorAll('#med-list .med-row');
+  const medicines = [...rows].map(row => ({
+    name: row.querySelector('.med-name')?.value.trim() || '',
+    dosage: row.querySelector('.med-dosage')?.value.trim() || '',
+    frequency: row.querySelector('.med-freq')?.value.trim() || '',
+    duration: row.querySelector('.med-dur')?.value.trim() || '',
+    quantity: 1,
+    unitPrice: 0
+  })).filter(m => m.name);
+
+  if (!medicines.length) { errEl.textContent = 'Please add at least one medicine.'; return; }
+
+  const payload = {
+    patient: selectedApt.patient?._id || selectedApt.patient,
+    appointment: selectedApt._id,
+    diagnosis,
+    notes: document.getElementById('rx-notes').value.trim(),
+    medicines
+  };
+
+  try {
+    await API.prescriptions.create(payload);
+    alert('✅ Prescription sent successfully!');
+    closeRxModal();
+    await loadPrescriptions();
+  } catch(e) {
+    errEl.textContent = e.message || 'Failed to send prescription.';
+  }
+}
+</script>
+</body>
+</html>

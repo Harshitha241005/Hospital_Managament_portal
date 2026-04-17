@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Patients List</title>
+</head>
+<body>
+
+<h2>All Patients</h2>
+
+<table border="1">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Age</th>
+      <th>Gender</th>
+      <th>Phone</th>
+      <th>Disease</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+async function loadPatients() {
+  const res = await fetch("http://localhost:5000/api/patients");
+  const data = await res.json();
+
+  const table = document.getElementById("tableBody");
+  table.innerHTML = "";
+
+  data.forEach(p => {
+    table.innerHTML += `
+      <tr>
+        <td>${p.name}</td>
+        <td>${p.age}</td>
+        <td>${p.gender}</td>
+        <td>${p.phone}</td>
+        <td>${p.disease}</td>
+      </tr>
+    `;
+  });
+}
+
+loadPatients();
+</script>
+
+</body>
+</html>

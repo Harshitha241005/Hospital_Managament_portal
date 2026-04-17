@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal — MediCare HMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0a2240;
+      --navy2: #0a3d62;
+      --cyan: #00b4d8;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+    h1,h2,h3 { font-family:'Playfair Display',serif; }
+
+    /* NAV */
+    .portal-nav {
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      height:64px; background:rgba(10,34,64,0.95); backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 48px;
+    }
+    .pnav-logo { color:#fff; font-family:'Playfair Display',serif; font-size:1.3rem; display:flex; align-items:center; gap:8px; }
+    .pnav-logo span { color:var(--cyan); }
+    .pnav-back { color:rgba(255,255,255,0.65); font-size:.88rem; text-decoration:none; transition:color .2s; }
+    .pnav-back:hover { color:var(--cyan); }
+
+    /* HERO */
+    .portal-hero {
+      flex:1; position:relative;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:100px 24px 60px; min-height:calc(100vh - 200px); overflow:hidden;
+    }
+    .portal-bg {
+      position:absolute; inset:0;
+      background-image:url('https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=1920&q=80');
+      background-size:cover; background-position:center; pointer-events:none;
+    }
+    .portal-overlay {
+      position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(160deg, rgba(10,34,64,0.96) 0%, rgba(10,61,98,0.90) 45%, rgba(0,150,196,0.75) 100%);
+    }
+
+    /* CONTENT */
+    .portal-content {
+      position:relative; z-index:10;
+      display:flex; flex-direction:column; align-items:center; text-align:center;
+      width:100%;
+    }
+    .portal-eyebrow {
+      display:inline-block;
+      background:rgba(0,180,216,0.15); color:var(--cyan);
+      border:1px solid rgba(0,180,216,0.3);
+      padding:5px 18px; border-radius:30px; font-size:.75rem; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase; margin-bottom:20px;
+    }
+    .portal-title { font-size:3rem; color:#fff; margin-bottom:12px; line-height:1.15; }
+    .portal-title em { color:var(--cyan); font-style:italic; }
+    .portal-sub { color:rgba(255,255,255,0.65); font-size:1rem; margin-bottom:52px; max-width:500px; line-height:1.7; }
+
+    /* CARDS */
+    .portal-cards {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:24px;
+      max-width:900px; width:100%;
+    }
+    .portal-card {
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.15);
+      backdrop-filter:blur(16px);
+      border-radius:18px; padding:36px 28px 28px;
+      display:flex; flex-direction:column; align-items:center; gap:14px;
+      transition:transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .portal-card:hover {
+      transform:translateY(-5px);
+      border-color:var(--cyan);
+      box-shadow:0 20px 50px rgba(0,0,0,0.3);
+    }
+    .pc-icon {
+      width:68px; height:68px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center; font-size:2rem;
+    }
+    .pc-icon.patient { background:rgba(6,214,160,0.2); }
+    .pc-icon.doctor  { background:rgba(0,180,216,0.2); }
+    .pc-icon.admin   { background:rgba(239,71,111,0.2); }
+    .portal-card h3  { color:#fff; font-size:1.2rem; margin:0; }
+    .portal-card p   { color:rgba(255,255,255,0.6); font-size:.85rem; line-height:1.65; text-align:center; margin:0; }
+
+    /* BUTTONS — completely independent, no interference */
+    .pc-action {
+      display:flex; gap:10px; width:100%;
+      padding-top:16px; border-top:1px solid rgba(255,255,255,0.1);
+      margin-top:auto;
+    }
+    .pc-btn {
+      flex:1; padding:11px 10px; border-radius:8px;
+      font-size:.85rem; font-weight:600; text-align:center;
+      text-decoration:none; display:block;
+      transition:all .2s; position:relative; z-index:20;
+      cursor:pointer;
+    }
+    .pc-btn-solid {
+      background:var(--cyan); color:#fff !important;
+    }
+    .pc-btn-solid:hover { background:#0097c4; }
+    .pc-btn-ghost {
+      background:rgba(255,255,255,0.12);
+      color:rgba(255,255,255,0.85) !important;
+      border:1px solid rgba(255,255,255,0.25);
+    }
+    .pc-btn-ghost:hover { background:rgba(255,255,255,0.22); color:#fff !important; }
+
+    /* Emergency */
+    .emergency-strip {
+      position:relative; z-index:10; margin-top:36px;
+      display:flex; align-items:center; gap:12px;
+      background:rgba(239,71,111,0.15); border:1px solid rgba(239,71,111,0.3);
+      border-radius:10px; padding:12px 20px;
+    }
+    .emergency-strip span { color:rgba(255,255,255,0.75); font-size:.85rem; }
+    .emergency-strip strong { color:#ef476f; }
+
+    /* FOOTER */
+    .site-footer { background:var(--navy); padding:60px 60px 0; }
+    .footer-container {
+      max-width:1100px; margin:0 auto;
+      display:grid; grid-template-columns:repeat(4,1fr); gap:40px;
+      padding-bottom:40px; border-bottom:1px solid rgba(255,255,255,0.1);
+    }
+    .footer-column h3 { color:#fff; font-size:.95rem; margin-bottom:16px; font-family:'DM Sans',sans-serif; font-weight:600; }
+    .footer-column a { display:block; color:rgba(255,255,255,0.5); font-size:.86rem; margin-bottom:10px; text-decoration:none; transition:color .2s; }
+    .footer-column a:hover { color:var(--cyan); }
+    .footer-column p { color:rgba(255,255,255,0.5); font-size:.86rem; margin-bottom:8px; }
+    .footer-bottom { max-width:1100px; margin:0 auto; padding:20px 0; text-align:center; color:rgba(255,255,255,0.3); font-size:.8rem; }
+
+    @media(max-width:700px) {
+      .portal-nav { padding:0 20px; }
+      .portal-cards { grid-template-columns:1fr; max-width:380px; }
+      .portal-title { font-size:2rem; }
+      .site-footer { padding:48px 24px 0; }
+      .footer-container { grid-template-columns:1fr 1fr; padding:0 0 32px; gap:24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="portal-nav">
+  <div class="pnav-logo">🏥 <span>Medi</span>Care HMS</div>
+  <a class="pnav-back" href="/">← Back to Hospital</a>
+</nav>
+
+<section class="portal-hero">
+  <div class="portal-bg"></div>
+  <div class="portal-overlay"></div>
+
+  <div class="portal-content">
+    <div class="portal-eyebrow">🏥 MediCare Hospital Portal</div>
+    <h1 class="portal-title">Your Health, <em>Simplified</em></h1>
+    <p class="portal-sub">Access your appointments, prescriptions, bills and health records — all securely in one place.</p>
+
+    <div class="portal-cards">
+
+      <!-- PATIENT -->
+      <div class="portal-card">
+        <div class="pc-icon patient">🧑‍⚕️</div>
+        <h3>Patient Portal</h3>
+        <p>Book appointments, view prescriptions, download invoices and manage your health profile.</p>
+        <div class="pc-action">
+          <a href="/login?role=patient" class="pc-btn pc-btn-solid">Login</a>
+          <a href="/signup" class="pc-btn pc-btn-ghost">Register</a>
+        </div>
+      </div>
+
+      <!-- DOCTOR -->
+      <div class="portal-card">
+        <div class="pc-icon doctor">👨‍⚕️</div>
+        <h3>Doctor Portal</h3>
+        <p>Manage your appointments, write prescriptions and track patient history efficiently.</p>
+        <div class="pc-action">
+          <a href="/login?role=doctor" class="pc-btn pc-btn-solid">Login</a>
+          <a href="/signup" class="pc-btn pc-btn-ghost">Register</a>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="portal-card">
+        <div class="pc-icon admin">🛡️</div>
+        <h3>Admin Panel</h3>
+        <p>Hospital management — patients, doctors, billing, reports and full system settings.</p>
+        <div class="pc-action">
+          <a href="/login?role=admin" class="pc-btn pc-btn-solid">Login</a>
+          <a href="/signup" class="pc-btn pc-btn-ghost">Register</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="emergency-strip">
+      <span>🚨</span>
+      <span>For medical emergencies call <strong>+91-XXXXXXXXXX</strong> · 24×7 Emergency Centre available</span>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-column">
+      <h3>Admissions</h3>
+      <a href="#">Admission</a>
+      <a href="#">Programs</a>
+    </div>
+    <div class="footer-column">
+      <h3>Other Links</h3>
+      <a href="#">Careers</a>
+      <a href="#">Events</a>
+      <a href="#">RTI</a>
+    </div>
+    <div class="footer-column">
+      <h3>Quick Connect</h3>
+      <a href="#">Facebook</a>
+      <a href="#">LinkedIn</a>
+    </div>
+    <div class="footer-column">
+      <h3>MediCare Hospital</h3>
+      <p>Warangal, Telangana, India</p>
+      <p>📞 +91-XXXXXXXXXX</p>
+      <p>✉ info@medicare.com</p>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 MediCare HMS. All Rights Reserved.</div>
+</footer>
+
+</body>
+</html>

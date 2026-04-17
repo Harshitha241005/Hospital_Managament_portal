@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — MediCare HMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="logo">🏥 MediCare HMS</div>
+    <p class="tagline">Join MediCare today</p>
+    <ul class="features">
+      <li><span class="icon">📋</span> Manage your health records</li>
+      <li><span class="icon">📅</span> Book appointments online</li>
+      <li><span class="icon">💊</span> Access prescriptions anytime</li>
+      <li><span class="icon">🔔</span> Get timely reminders</li>
+    </ul>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-form">
+      <h2>Create Account</h2>
+      <p class="sub">Register as a patient</p>
+
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="name" placeholder="Your full name">
+      </div>
+
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" id="email" placeholder="Your email address">
+      </div>
+
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" id="password" placeholder="Min 6 characters">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="phone" placeholder="Phone number">
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="age" placeholder="Your age" min="1" max="120">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="gender">
+            <option value="">Select</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Blood Group</label>
+          <select id="bloodGroup">
+            <option value="">Select</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>O+</option><option>O-</option>
+            <option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="error-msg" style="background:#f8d7da;color:#721c24;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none;font-size:.88rem;"></div>
+      <div id="success-msg" style="background:#d4edda;color:#155724;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none;font-size:.88rem;"></div>
+
+      <button type="button" id="signupBtn" class="btn btn-primary" onclick="doSignup()">Create Account</button>
+
+      <p style="text-align:center;margin-top:20px;font-size:.85rem;color:var(--text2);">
+        Already have an account? <a href="/login" style="color:var(--accent);font-weight:600;">Login</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+async function doSignup() {
+  const errBox = document.getElementById('error-msg');
+  const sucBox = document.getElementById('success-msg');
+  const btn    = document.getElementById('signupBtn');
+
+  errBox.style.display = 'none';
+  sucBox.style.display = 'none';
+
+  const name     = document.getElementById('name').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if (!name || !email || !password) {
+    errBox.style.display = 'block';
+    errBox.textContent = 'Name, email and password are required.';
+    return;
+  }
+  if (password.length < 6) {
+    errBox.style.display = 'block';
+    errBox.textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+
+  try {
+    const res = await API.auth.register({
+      name, email, password,
+      phone: document.getElementById('phone').value.trim(),
+      age: Number(document.getElementById('age').value) || undefined,
+      gender: document.getElementById('gender').value,
+      bloodGroup: document.getElementById('bloodGroup').value,
+      role: 'patient'
+    });
+
+    Auth.setSession(res.token, res.user);
+    sucBox.style.display = 'block';
+    sucBox.textContent = 'Account created! Redirecting...';
+    setTimeout(() => window.location.href = '/patient/dashboard', 1200);
+  } catch(err) {
+    errBox.style.display = 'block';
+    errBox.textContent = err.message || 'Registration failed.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+  }
+}
+</script>
+</body>
+</html>

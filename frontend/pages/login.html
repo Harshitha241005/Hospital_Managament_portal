@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — MediCare HMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="logo">🏥 MediCare HMS</div>
+    <p class="tagline">Your health, our priority</p>
+    <ul class="features">
+      <li><span class="icon">🔒</span> Secure patient records</li>
+      <li><span class="icon">📅</span> Easy appointment booking</li>
+      <li><span class="icon">💊</span> Digital prescriptions</li>
+      <li><span class="icon">💰</span> Instant billing & invoices</li>
+    </ul>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-form">
+      <h2>Welcome Back</h2>
+      <p class="sub">Sign in to your MediCare account</p>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="Enter your email" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="new-password">
+      </div>
+
+      <div class="forgot-password" style="text-align:right;margin-top:-10px;margin-bottom:16px;">
+        <a href="/forgot" style="font-size:.85rem;color:var(--accent);">Forgot Password?</a>
+      </div>
+
+      <div id="error-msg" style="background:#f8d7da;color:#721c24;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none;font-size:.88rem;"></div>
+
+      <button type="button" id="loginBtn" class="btn btn-primary" onclick="doLogin()">Login</button>
+
+      <p style="text-align:center;margin-top:20px;font-size:.85rem;color:var(--text2);">
+        Don't have an account? <a href="/signup" style="color:var(--accent);font-weight:600;">Sign Up</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+window.onload = function () {
+  document.getElementById('email').value = '';
+  document.getElementById('password').value = '';
+  // Check for role hint from landing page
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get('role');
+  if (role === 'admin') document.getElementById('email').value = 'admin@hospital.com';
+  else if (role === 'doctor') document.getElementById('email').value = 'priya@hospital.com';
+  else if (role === 'patient') document.getElementById('email').value = 'ravi@email.com';
+};
+
+document.getElementById('password').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const errBox   = document.getElementById('error-msg');
+  const btn      = document.getElementById('loginBtn');
+
+  errBox.style.display = 'none';
+
+  if (!email || !password) {
+    errBox.style.display = 'block';
+    errBox.textContent = 'Please enter both email and password.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Logging in...';
+
+  try {
+    const res = await API.auth.login({ email, password });
+    const token = res?.token;
+    const user  = res?.user;
+
+    if (!token || !user) throw new Error('Invalid login response from server.');
+
+    Auth.setSession(token, user);
+
+    if (user.role === 'doctor')       window.location.href = '/doctor/dashboard';
+    else if (user.role === 'patient') window.location.href = '/patient/dashboard';
+    else                              window.location.href = '/admin/dashboard';
+  } catch (err) {
+    errBox.style.display = 'block';
+    errBox.textContent = err.message || 'Login failed. Check your credentials.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Login';
+  }
+}
+</script>
+</body>
+</html>

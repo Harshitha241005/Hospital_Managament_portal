@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forgot Password — MediCare HMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="logo">🏥 MediCare HMS</div>
+    <p class="tagline">Reset your password</p>
+  </div>
+  <div class="auth-right">
+    <div class="auth-form">
+      <h2>Forgot Password</h2>
+      <p class="sub">Enter your email and new password</p>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="Your registered email">
+      </div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="newPassword" placeholder="New password (min 6 chars)">
+      </div>
+
+      <div id="error-msg" style="background:#f8d7da;color:#721c24;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none;font-size:.88rem;"></div>
+      <div id="success-msg" style="background:#d4edda;color:#155724;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none;font-size:.88rem;"></div>
+
+      <button class="btn btn-primary" onclick="doReset()">Reset Password</button>
+
+      <p style="text-align:center;margin-top:16px;font-size:.85rem;">
+        <a href="/login" style="color:var(--accent);">← Back to Login</a>
+      </p>
+    </div>
+  </div>
+</div>
+<script src="/js/api.js"></script>
+<script>
+async function doReset() {
+  const errBox = document.getElementById('error-msg');
+  const sucBox = document.getElementById('success-msg');
+  errBox.style.display = 'none'; sucBox.style.display = 'none';
+
+  const email = document.getElementById('email').value.trim();
+  const newPassword = document.getElementById('newPassword').value.trim();
+
+  if (!email || !newPassword) { errBox.style.display='block'; errBox.textContent='Both fields required.'; return; }
+  if (newPassword.length < 6) { errBox.style.display='block'; errBox.textContent='Password min 6 chars.'; return; }
+
+  try {
+    await API.auth.resetPassword({ email, newPassword });
+    sucBox.style.display = 'block';
+    sucBox.textContent = 'Password reset! Redirecting to login...';
+    setTimeout(() => window.location.href = 'login.html', 2000);
+  } catch(e) {
+    errBox.style.display = 'block';
+    errBox.textContent = e.message;
+  }
+}
+</script>
+</body>
+</html>

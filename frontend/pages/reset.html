@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset Password</title>
+</head>
+<body>
+
+<h2>Reset Password</h2>
+
+<input type="password" id="pass" placeholder="New Password"><br><br>
+<input type="password" id="confirm" placeholder="Confirm Password"><br><br>
+
+<button onclick="reset()">Reset Password</button>
+
+<script src="../js/api.js"></script>
+<script>
+const token = new URLSearchParams(window.location.search).get('token');
+
+async function reset() {
+  const pass = document.getElementById('pass').value;
+  const confirm = document.getElementById('confirm').value;
+
+  if (pass !== confirm) {
+    alert("Passwords do not match");
+    return;
+  }
+
+  try {
+    await API.auth.resetPassword({
+      token,
+      password: pass
+    });
+
+    alert("Password reset successful");
+    window.location.href = "login.html";
+
+  } catch (e) {
+    alert(e.message);
+  }
+}
+</script>
+
+</body>
+</html>
