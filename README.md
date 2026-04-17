@@ -1,8 +1,4 @@
 # 🏥 MediCare HMS — Hospital Management System
 
-## Quick Start
-
-### 1. Install Dependencies
-```bash
-cd backend
-npm install
+## 🌐 Live Demo  
+https://hospital-managament-portal.onrender.com
